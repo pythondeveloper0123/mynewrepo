@@ -1,0 +1,250 @@
+GraphQL with Django
+1. REST recap / perceived weaknesses
+2. GraphQL overview
+3. Django → GraphQL setup
+4. Return data with GraphQL
+
+App Data Requirements
+▪Real-time collaboration
+▪ Offline Programming Model with Sync
+Get only the data you need
+▪Fine-grained Access Control
+▪Flexible Database Options
+
+REST - Representational State Transfer
+▪Standard for designing web APIs
+▪Features
+Simple to build
+▪ Structured access to resources
+
+REST - Representational State Transfer
+▪ Perceived weaknesses/problems
+▪ Inflexible to rapid changing requirements
+▪ Over Fetching--client downloading more data than required
+▪ Under Fetching-specific endpoint doesnt provide enough data
+
+Traditional REST Paradigm
+      
+Browser             API        URL-->view-->serializer
+
+User Data           /api/<id>/user
+Post Data view      /api/<id>/data
+User History        /api/<id>/history
+
+From front end we cannot decide how much data we want to acces we have to depend on backend urls and views so it not very flexible in rest
+
+
+▪Developed / open-sourced by Facebook (2015)
+▪GraphQL is an API standard
+▪ Provides efficiency, flexibility
+
+
+▪GraphQL enables declarative data fetching
+▪ REST - multiple endpoints that return fixed data structures
+▪GraphQL exposes a single endpoint
+Responds with precise data from client requests
+
+graphql enables us to create data query from frontend so we better specify the data we want send back to frontend.
+
+commands.txt
+1 py -m veny venv
+2 venv\Scripts\activate
+3 pip install django
+4 django-admin startproject core .
+5 py manage.py startapp books
+
+#models.py
+from django.db import models
+class Books (models.Model):
+    title= models.CharField(max_length=100)
+    excerpt = models.TextField()
+    def _str_(self):
+        return self.title
+
+#pip install graphene-django
+#installed apps=['books','graphene_django']
+#create schema.py in books app
+#we describe data model to fetch data from database
+
+import graphene
+from graphene_django import DjangoObjectType    # DjangoObjectType--way of formating django object into format object which can be used by graphql 
+from .models import Books
+
+#just like modelserializer but here we can access only required fields with our graphql query 
+class BooksType (DjangoObjectType):
+    class Meta:
+        model = Books
+        fields = ("id", "title", "excerpt")
+
+#graphql presents our database object as a graph structure
+the above model can be translated into below data due DjangoObjectType
+(DjangoObjectType is a type of ObjectType in the GraphQL Python library Graphene-Django. It maps Django models to GraphQL types, allowing you to use your existing models to build a GraphQL API. The type provides a convenient way to interact with Django models through GraphQL queries and mutations.)
+type Books {
+    id: id
+    title: String
+    Excerpt: String
+}
+
+Now this data will get converted into graph structure with the help of graphql
+
+In Django, models are used to represent data in a structured and organized manner. In a similar way, ObjectTypes in GraphQL are used to represent data in a structured and organized manner. Both Django models and GraphQL ObjectTypes provide a way to define the structure of data, including the fields and their data types.
+
+Django models define the data structure and behavior of the data stored in the database, while ObjectTypes in GraphQL define the structure of the data that can be queried or mutated through the API.
+
+Additionally, DjangoObjectType in Graphene-Django serves as a bridge between Django models and GraphQL ObjectTypes. It allows you to reuse your existing Django models in your GraphQL API, allowing for easy integration between your database and API.
+
+
+class Query(graphene.ObjectType):
+    all_books = graphene.List (BooksType)
+
+
+In Graphene, the graphene.List is a type used to represent a list of items of a specific type. It can be used as a field type in an ObjectType to define a list of objects with a specific type.
+
+For example, you can define a GraphQL ObjectType called "Person" with a field called "friends" that is a list of type "Person". This would represent a many-to-many relationship between persons. When querying this type, the "friends" field will return an array of Person objects.
+
+Here's an example usage of the graphene.List type:
+
+import graphene
+
+class PersonType(graphene.ObjectType):
+    name = graphene.String()
+
+class Query(graphene.ObjectType):
+    friends = graphene.List(PersonType)
+
+
+schema = graphene.Schema (query-Query)
+
+In Graphene, the graphene.Schema class is used to define the structure of a GraphQL API. It is the entry point for querying the API, and it defines the top-level query operation(s) that can be executed.
+
+The graphene.Schema class takes two required arguments: query and mutation, which represent the root types for querying and mutating data in the API, respectively.
+
+The query argument is used to specify the root ObjectType for querying data. This ObjectType should define the top-level fields that clients can query to retrieve data from the API.
+
+
+#urls.py
+from django.urls import path
+from graphene_django.views import GraphQLView
+from books.schema import schema
+urlpatterns = []
+        # Only a single URL to access GraphQL
+        path("graphql", GraphQLView.as_view(graphiql=True, schema=schema)),
+]
+
+
+The GraphQLView.as_view method is used in Django to create a class-based view that serves a GraphQL API. The as_view method takes several arguments, including graphiql=True and schema=schema.
+
+graphiql=True enables the GraphiQL interactive tool for exploring and testing the API. This tool provides a convenient user interface for sending GraphQL queries and examining the results.
+
+schema=schema is used to specify the graphene.Schema instance that the view will use to handle GraphQL requests. The schema argument is used to specify the structure of the API, including the available queries and mutations.
+
+Here's an example usage of the GraphQLView.as_view method:
+
+python
+Copy code
+from django.urls import path
+from graphene_file_upload.django import FileUploadGraphQLView
+from .schema import schema
+
+urlpatterns = [
+    path('graphql/', FileUploadGraphQLView.as_view(graphiql=True, schema=schema))
+]
+This code creates a URL endpoint at /graphql/ that will serve the GraphQL API using the FileUploadGraphQLView class. The FileUploadGraphQLView class is a subclass of GraphQLView that adds support for file uploads in GraphQL. The schema argument is used to specify the graphene.Schema instance that the view will use to handle GraphQL requests.
+#How to define schema in settings.py
+To define the schema for a GraphQL API in a Django project, you can add a GRAPHENE setting to the settings.py file. This setting should contain a dictionary with the SCHEMA key, which specifies the graphene.Schema instance to use for the API.
+
+Here's an example of defining the schema in the settings.py file:
+
+graphql
+Copy code
+GRAPHENE = {
+    'SCHEMA': 'your_app.schema.schema'
+}
+In this example, the GRAPHENE setting specifies that the schema is located in the your_app.schema.schema module. This module should contain the code that defines your GraphQL schema, including the graphene.ObjectType classes and the graphene.Schema instance.
+
+After adding the GRAPHENE setting to the settings.py file, you can reference it in your views or URL configurations to specify the schema for your GraphQL API. For example:
+
+python
+Copy code
+from django.urls import path
+from graphene_file_upload.django import FileUploadGraphQLView
+from django.conf import settings
+
+urlpatterns = [
+    path('graphql/', FileUploadGraphQLView.as_view(graphiql=True, schema=settings.GRAPHENE['SCHEMA'])),
+]
+
+#create superuser
+#admin.py --register model, add some data to it
+
+
+class Query(graphene.ObjectType):
+    all_books graphene.List (Books Type)
+    def resolve_all_books (self, info):
+        #return Books.objects.all()
+        return Books.objects.filter(title="django")
+
+
+NOw in browser query of following will give us all
+{
+    allBooks {
+        id
+        title
+}
+
+like
+{
+    "data": {
+        "allBooks": [
+            {
+                "id": "1",
+                "title": "django"
+            },
+            {
+                "id": "2",
+                "title": "react"
+            }
+        ]
+    }
+}
+
+The resolve method in Django and Graphene is used to specify the behavior for resolving a field in a GraphQL schema. The resolve method is a function that takes two arguments: self and info and returns the data for the field.
+
+self refers to the instance of the ObjectType that contains the field being resolved.
+
+info is an instance of the graphene.ResolveInfo class, which contains information about the current request, including the field name, arguments, and context.
+
+Here's an example of defining a resolve method for a field in a GraphQL schema:
+
+import graphene
+from django.contrib.auth.models import User
+
+class UserType(graphene.ObjectType):
+    username = graphene.String()
+    email = graphene.String()
+
+    def resolve_username(self, info):
+        return self.username
+
+    def resolve_email(self, info):
+        return self.email
+
+class Query(graphene.ObjectType):
+    users = graphene.List(UserType)
+
+    def resolve_users(self, info):
+        return User.objects.all()
+
+schema = graphene.Schema(query=Query)
+In this example, the UserType class defines two fields: username and email. The resolve_username and resolve_email methods are used to specify the behavior for resolving these fields. These methods simply return the username and email properties of the User model, respectively.
+
+The Query class defines a single field, users, which returns a list of UserType objects. The resolve_users method is used to specify the behavior for resolving the users field. This method returns a queryset of all User objects from the database.
+
+
+from .models import Model
+
+@admin.register(Model)
+class ModelAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in Model._meta.get_fields()]
+    
+
